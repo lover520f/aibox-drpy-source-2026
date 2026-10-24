@@ -291,6 +291,8 @@ if ($stageResolved.StartsWith($tempResolved, [System.StringComparison]::OrdinalI
 }
 
 if ($validationError) {
+  $validationError += "; archive entries: $($entries | Select-Object -First 12 | Join-String -Separator ', ')"
+  $validationError += "; source root: $SkillRoot; first relative path: $($items[0].FullName.Substring($skillRootWithSlash.Length))"
   if (Test-Path -LiteralPath $zipPath -PathType Leaf) {
     Remove-Item -LiteralPath $zipPath -Force
   }
