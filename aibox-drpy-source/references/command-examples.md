@@ -1,9 +1,9 @@
 # Aibox 写源 CLI 示例
 
-以下命令从 skill 根目录运行。先查看当前帮助，参数与输出以实际 CLI 为准：
+以下命令从仓库根目录运行。先查看当前帮助，参数与输出以实际 CLI 为准：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs help
+node <skill-root>/scripts/aibox-skill-cli.mjs help
 ```
 
 CLI 正常结果统一输出 JSON：
@@ -19,28 +19,28 @@ CLI 正常结果统一输出 JSON：
 检查 Node、Aibox 原生引擎、便携 runtime、OCR、配置和云剪切板能力：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs doctor
+node <skill-root>/scripts/aibox-skill-cli.mjs doctor
 ```
 
 有真实验证码样本时：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs doctor --ocr-image-file .\captcha.png
+node <skill-root>/scripts/aibox-skill-cli.mjs doctor --ocr-image-file .\captcha.png
 ```
 
 ## 2. 读取知识资源
 
-列出当前知识、空白模板和 Prompt：
+列出当前知识、示例、模板和 Prompt：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs resources list
+node <skill-root>/scripts/aibox-skill-cli.mjs resources list
 ```
 
 按短名称或完整 URI 读取单项资源：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs resources read --name comic-source-development-playbook
-node .\scripts\aibox-skill-cli.mjs resources read --uri aibox://knowledge/drpy-basic-format-grammar
+node <skill-root>/scripts/aibox-skill-cli.mjs resources read --name comic-source-development-playbook
+node <skill-root>/scripts/aibox-skill-cli.mjs resources read --uri aibox://knowledge/drpy-basic-format-grammar
 ```
 
 ## 3. 站型判断
@@ -48,7 +48,7 @@ node .\scripts\aibox-skill-cli.mjs resources read --uri aibox://knowledge/drpy-b
 直接分析目标 URL：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs triage --url "https://example.com"
+node <skill-root>/scripts/aibox-skill-cli.mjs triage --url "https://example.com"
 ```
 
 结果重点查看 `route`、`contentType`、`implementationMode`、`risks`、`evidence` 和 `nextCommand`。
@@ -58,21 +58,21 @@ node .\scripts\aibox-skill-cli.mjs triage --url "https://example.com"
 列出当前 Aibox 引擎真实模板：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs templates list
+node <skill-root>/scripts/aibox-skill-cli.mjs templates list
 ```
 
 根据 URL 或已抓取内容推测候选模板：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs templates guess --url "https://example.com"
-node .\scripts\aibox-skill-cli.mjs templates guess --content-file .\samples\home.html
+node <skill-root>/scripts/aibox-skill-cli.mjs templates guess --url "https://example.com"
+node <skill-root>/scripts/aibox-skill-cli.mjs templates guess --content-file .\samples\home.html
 ```
 
 查看源码或现有模块在模板继承后的有效规则：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs resolved --code-file .\output\source.js
-node .\scripts\aibox-skill-cli.mjs resolved --module 源名称
+node <skill-root>/scripts/aibox-skill-cli.mjs resolved --code-file .\output\source.js
+node <skill-root>/scripts/aibox-skill-cli.mjs resolved --module 源名称
 ```
 
 ## 5. 生成紧凑规则
@@ -80,7 +80,7 @@ node .\scripts\aibox-skill-cli.mjs resolved --module 源名称
 按输入 schema 生成规则：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs compose --input-file .\source-spec.json
+node <skill-root>/scripts/aibox-skill-cli.mjs compose --input-file .\source-spec.json
 ```
 
 输入应明确 `sourceKind`、`contentType`、`implementationMode`，以及实际需要的 `home/category/search/detail/catalog/reader/play` 阶段。简单站优先模板或字符串规则，签名、POST、动态域、聚合、解密阶段再使用 async。
@@ -129,13 +129,13 @@ POST body 中的 `fyid/fyclass/fypage/**` 默认替换为原始值，适合 JSON
 只输出源代码时：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs compose --input-file .\source-spec.json --code-only
+node <skill-root>/scripts/aibox-skill-cli.mjs compose --input-file .\source-spec.json --code-only
 ```
 
 ## 6. L1 静态检查
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs lint --code-file .\output\source.js
+node <skill-root>/scripts/aibox-skill-cli.mjs lint --code-file .\output\source.js
 ```
 
 `lint` 读取或解密源码，检查语法、AST、重复键、header、模板、继承、二级字典、请求输入和播放契约，不执行站点源码。
@@ -145,19 +145,19 @@ node .\scripts\aibox-skill-cli.mjs lint --code-file .\output\source.js
 只运行结构检查：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs check --code-file .\output\source.js --level l1
+node <skill-root>/scripts/aibox-skill-cli.mjs check --code-file .\output\source.js --level l1
 ```
 
 执行单接口真实验证：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs check --code-file .\output\source.js --level l2 --engine auto
+node <skill-root>/scripts/aibox-skill-cli.mjs check --code-file .\output\source.js --level l2 --engine auto
 ```
 
 执行真实 ID 完整链路：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs check --code-file .\output\source.js --level l3 --engine auto
+node <skill-root>/scripts/aibox-skill-cli.mjs check --code-file .\output\source.js --level l3 --engine auto
 ```
 
 引擎选项：
@@ -168,13 +168,19 @@ node .\scripts\aibox-skill-cli.mjs check --code-file .\output\source.js --level 
 
 小说 L3 检查首末章正文；漫画 L3 检查首末章首尾图片文件头；影视 L3 检查至少一条真实播放链。
 
+### Node 原生权限模型
+
+原生 worker 会按当前 Node 构建自动选择受支持的权限参数（例如 `--permission` 或旧版 `--experimental-permission`），并仅授权引擎资源、规则文件、隔离工作目录及 drpy 明确探测的相邻资源目录。Node 24 下不应为了绕过旧参数错误而关闭权限模型；先更新 Skill runtime，再用 `node --version`、`doctor` 和原生 L3 测试确认运行状态。
+
+只有排查 Node 权限模型本身时才可显式设置 `permissionModel: false`。这种 `process-only` 结果是诊断信息，不等价于标准隔离验收，也不能作为正式上传门禁。
+
 ## 8. 局部选择器调试
 
 对已抓取内容调试 `pdfa/pdfh/pd`，必须同时给出 `--mode` 和 `--rule`：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs debug-selector --content-file .\samples\home.html --mode pdfa --rule ".list&&li"
-node .\scripts\aibox-skill-cli.mjs debug-selector --content-file .\samples\home.html --mode pdfh --rule "h3&&Text" --base-url "https://example.com"
+node <skill-root>/scripts/aibox-skill-cli.mjs debug-selector --content-file .\samples\home.html --mode pdfa --rule ".list&&li"
+node <skill-root>/scripts/aibox-skill-cli.mjs debug-selector --content-file .\samples\home.html --mode pdfh --rule "h3&&Text" --base-url "https://example.com"
 ```
 
 选择器局部成功只算调试证据，不能代替 L2/L3。
@@ -184,13 +190,13 @@ node .\scripts\aibox-skill-cli.mjs debug-selector --content-file .\samples\home.
 默认只输出候选 diff，不改原文件：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs heal --code-file .\output\source.js
+node <skill-root>/scripts/aibox-skill-cli.mjs heal --code-file .\output\source.js
 ```
 
 确认补丁后才写入：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs heal --code-file .\output\source.js --apply
+node <skill-root>/scripts/aibox-skill-cli.mjs heal --code-file .\output\source.js --apply
 ```
 
 `heal` 只修复有静态或真实响应证据的问题，不猜测搜索地址、headers、分类或模板。
@@ -198,39 +204,61 @@ node .\scripts\aibox-skill-cli.mjs heal --code-file .\output\source.js --apply
 ## 10. 原子保存与版本递增
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs save --code-file .\output\source.js --file-name source.js
+node <skill-root>/scripts/aibox-skill-cli.mjs save --code-file .\output\source.js --file-name source.js
 ```
 
 覆盖并递增 patch：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs save --code-file .\output\source.js --file-name source.js --output-dir .\drpy-node\spider\js --overwrite --bump patch
+node <skill-root>/scripts/aibox-skill-cli.mjs save --code-file .\output\source.js --file-name source.js --output-dir .\drpy-node\spider\js --overwrite --bump patch
 ```
 
 `--bump` 支持 `patch`、`minor`、`major`。保存采用临时文件、回读校验和原子替换，失败时保留原文件。
 
-## 11. 云1 单源分享
+## 11. 从剪切板读取海阔规则
+
+剪切板里已经有完整 `home_rule/home_rule_v2` 或 `云2oooole/apidb/<key>` 时：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画
+node <skill-root>/scripts/aibox-skill-cli.mjs hiker-import --clipboard --save
+```
+
+指定云2 key：
+
+```powershell
+node <skill-root>/scripts/aibox-skill-cli.mjs hiker-import --key exampleKey --save
+```
+
+指定保存文件并允许覆盖：
+
+```powershell
+node <skill-root>/scripts/aibox-skill-cli.mjs hiker-import --clipboard --output-file .\output\source.hiker.json --overwrite
+```
+
+命令只解析和保存规则，不执行海阔脚本。结果会列出 `pages`、`$.require/requirejs/require` 依赖及未内嵌依赖警告。
+
+## 12. 云1 单源分享
+
+```powershell
+node <skill-root>/scripts/aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画
 ```
 
 只验证编码和分享码形态：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画 --dry-run
+node <skill-root>/scripts/aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画 --dry-run
 ```
 
 上传后复制分享码：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画 --copy
+node <skill-root>/scripts/aibox-skill-cli.mjs share --code-file .\output\source.js --name 源名称 --category comic --group-tag 漫画 --copy
 ```
 
-## 12. 云G1 分组分享
+## 13. 云G1 分组分享
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs share --group-file .\group.json --name 漫画分组 --category comic --group-tag 漫画
+node <skill-root>/scripts/aibox-skill-cli.mjs share --group-file .\group.json --name 漫画分组 --category comic --group-tag 漫画
 ```
 
 默认先执行必要校验，并在上传后回读核对字节数和 SHA-256：
@@ -239,13 +267,13 @@ node .\scripts\aibox-skill-cli.mjs share --group-file .\group.json --name 漫画
 - `--no-verify`：显式关闭上传后回读验证，只用于受控诊断。
 - 分组任一单项失败时，不能报告整组成功。
 
-## 13. 手动便携 Runtime
+## 14. 手动便携 Runtime
 
 正常检查优先使用 `check --engine auto`。只有排查便携 runtime 本身时才手动启动，默认选择随机空闲端口：
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs runtime start
-node .\scripts\aibox-skill-cli.mjs runtime stop
+node <skill-root>/scripts/aibox-skill-cli.mjs runtime start
+node <skill-root>/scripts/aibox-skill-cli.mjs runtime stop
 ```
 
 CLI 只停止由本 Skill 创建且状态信息匹配的 runtime，不接管任意现有 Node 服务。
@@ -253,3 +281,59 @@ CLI 只停止由本 Skill 创建且状态信息匹配的 runtime，不接管任�
 ## 旧命令
 
 `compose-rule`、`validate-rule`、`check-syntax`、`live-check`、`live-heal`、`save-rule`、`upload-clipboard`、`drpy-doctor` 等仅作为 deprecated alias 保留。新文档和新自动化只使用本页主命令。
+
+## 15. 连接 App 内置 MCP
+
+在 App 的“设置 → AIBOX Studio”启动服务，使用那里显示的地址。`127.0.0.1` 只代表 MCP 客户端所在设备；电脑连手机时用手机局域网 IP，或明确设置 adb 转发。TCP 端口处于监听状态并不能证明 Studio 已响应；连接后须列出工具并调用 `aibox.device.info/health`。
+
+### Codex 桌面端、CLI 和 IDE
+
+免配对模式可从终端添加：
+
+```powershell
+codex mcp add aibox --url http://device.example.com:8765/mcp
+codex mcp list
+```
+
+也可以在 `~/.codex/config.toml` 中配置；桌面端添加后按其提示重启连接：
+
+```toml
+[mcp_servers.aibox]
+url = "http://device.example.com:8765/mcp"
+```
+
+如 App 开启“需要配对 Token”，先在 App 生成一次性配对码，再从**将要启动 Codex 的同一个 PowerShell 进程**配对。不要输出或写入真实 Token；已运行的桌面 App 不会自动继承新设的进程环境变量。
+
+```powershell
+$aiboxBaseUrl = 'http://device.example.com:8765'
+$pairBody = @{ code = '<App 中的 6 位配对码>'; clientLabel = 'Codex' } | ConvertTo-Json
+$pairResult = Invoke-RestMethod -Method Post -Uri "$aiboxBaseUrl/api/studio/pair" -ContentType 'application/json' -Body $pairBody
+$env:AIBOX_MCP_TOKEN = $pairResult.token
+```
+
+配对模式的 Codex 配置为：
+
+```toml
+[mcp_servers.aibox]
+url = "http://device.example.com:8765/mcp"
+bearer_token_env_var = "AIBOX_MCP_TOKEN"
+```
+
+Token 失效后在 App 重新配对，并让 Codex 进程读取新的环境变量。`codex mcp list` 只证明配置存在；本轮真机可用性仍以 MCP 初始化、工具列表和设备/引擎状态为准。Codex Streamable HTTP 的 `url`、`bearer_token_env_var` 及重连方式以[官方 MCP 文档](https://developers.openai.com/codex/extend/mcp)为准。
+
+### Claude Code 等 JSON MCP 客户端
+
+免配对模式示例：
+
+```json
+{
+  "mcpServers": {
+    "aibox": {
+      "type": "http",
+      "url": "http://device.example.com:8765/mcp"
+    }
+  }
+}
+```
+
+配对模式按客户端支持的凭据或环境变量 Header 配置 Bearer Token；只有客户端明确支持环境变量插值时才使用对应语法，不把真实 Token 写入可提交的配置。具体工具参数、脱敏草稿编辑、L1/L2/L3 结果判断和冲突恢复见[App MCP 写源与验收](app-mcp-source-workflow.md)。

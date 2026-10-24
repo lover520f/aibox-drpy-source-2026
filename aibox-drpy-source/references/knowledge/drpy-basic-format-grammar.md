@@ -21,6 +21,7 @@
 var rule = {
   类型: '影视',
   title: '站点名称',
+  logo: 'https://example.com/favicon.ico',
   host: 'https://example.com',
   url: '/list/fyclass-fypage.html',
   searchUrl: '/search?wd=**&page=fypage'
@@ -38,6 +39,8 @@ var rule = {
 ```
 
 不要为了“字段齐全”把模板已有字段重复展开。先读取当前引擎模板表并查看展开后的规则；不存在的模板名必须报错，不能猜测 `appapi` 等名字。
+
+`logo` 是 Aibox 客户端源选择列表显示的站点图标地址，必须是完整 http/https URL 或可由 host 解析的绝对路径。客户端优先读取该字段，其次回退 `{host}/favicon.ico`，最终兜底为内置地球图标。
 
 ## 2. 字符串规则
 
@@ -176,8 +179,23 @@ await request(url, { method: 'POST', data: jsonText });
 - `searchUrl` 中的 `**` 用于把关键词写入请求 URL。
 - 搜索函数运行时会注入 `this.KEY`；不能仅因 `searchUrl` 没有 `**` 就断言 KEY 不存在。
 - POST 搜索可在函数中使用 `this.KEY` 构造 body。
+- 搜索线路、精确/模糊模式、内容范围、关键词清洗和最大页数等长期偏好可从 `rule.aiboxSetup` 读取；不要用 setup 替代 `this.KEY`，也不要把本次关键词持久化。
 - 搜索响应若可能是验证码 HTML，先识别和处理验证页，再执行 `JSON.parse`。
 - `searchable: 0` 表示源明确不提供搜索，不应生成虚假搜索地址。
+
+分类筛选与源级默认值必须分层：
+
+```javascript
+一级: async function (tid, pg, filter, extend) {
+  const setup = rule.aiboxSetup || {};
+  const current = extend || {};
+  const area = current.area || setup.defaultArea || '';
+  const sort = current.sort || setup.defaultSort || 'update';
+  // 使用 area、sort 和本次分类参数构造请求。
+}
+```
+
+当前页面传入的 `fl/extend` 优先于 setup；setup 只提供用户长期默认值。分类页可交互筛选继续声明 `filter`、`filter_def`、`filter_url`，不要为每个分类选项生成一份长期配置字段。
 
 ## 7. 播放与正文
 

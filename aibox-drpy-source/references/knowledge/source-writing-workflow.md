@@ -40,6 +40,8 @@
 - 响应是 HTML、JSON、脚本、二进制还是验证页。
 - 当前阶段输入 ID 来自上游哪个字段。
 
+影视源在抓首页时同时采集站点图标：按 `og:image` -> `apple-touch-icon` -> `<link rel="icon">` 顺序取第一个可用候选；相对路径拼接 host 后验证 HTTP 200 且 Content-Type 为 `image/*` 再写入 `logo` 字段。全部不可用时留空，客户端自动回退 `{host}/favicon.ico`。
+
 入口为发布页、Loading 壳或旧域 404 时，先读取 `dynamic-host-playbook.md`，确定业务域后再抓其余页面。响应出现验证码、安全验证或 HTML 挑战页时，再读取 `captcha-ocr-playbook.md`。
 
 ## 3. 站型分派

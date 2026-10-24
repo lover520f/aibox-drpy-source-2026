@@ -110,7 +110,7 @@ function dhHtmlDecode(text) {
 
 function dhIsPublishHost(host) {
   const value = String(host || '').toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
-  return /(^|\.)example-pub\.com$|(^|\.)bcebos\.com$|(^|\.)github\.io$/.test(value);
+  return /(^|\.)publish\.example\.com$|(^|\.)bcebos\.com$|(^|\.)github\.io$/.test(value);
 }
 
 function dhCollectUrls(text) {

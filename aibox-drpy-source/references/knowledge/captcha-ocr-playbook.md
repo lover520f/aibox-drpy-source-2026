@@ -29,6 +29,18 @@
 - `OCR_RETRY`：默认对齐 drpy-node 原项目，为 `3` 次。
 - `搜索验证标识`：给字符串型 `搜索` 规则提供验证码命中标记，便于 drpy-node 通用搜索链路自动处理。
 
+## 先判断验证类型
+
+| 真实场景 | 推荐实现 |
+|---|---|
+| 老式图片验证码，有固定图片和提交接口 | `verifyCode` / `OcrApi` / `setItem(RULE_CK)` |
+| Cloudflare Challenge | `more.aibox.setup.webLogin` + `requiredCookies` |
+| 滑块、行为验证、人机验证 | `more.aibox.setup.webLogin`，由用户在 WebView 完成 |
+| 账号网页登录，成功后依赖 Cookie | `webLogin` + `type: cookie` 字段 + `resultKey` |
+| API Token、API Key、手工 Cookie | 原生 setup 表单中的敏感字段 |
+
+这套判断与内容类型无关，影视、小说和漫画源都使用同一协议。看到 `Just a moment...`、`cf_chl_*`、`cf_clearance`、Turnstile、滑块或浏览器指纹脚本时，不要继续生成 OCR helper；改读[源启动配置协议](source-setup-protocol.md)，声明受控网页登录入口。
+
 ## 默认实现链路
 
 drpy-node 内置验证码处理链路适合老式图片验证码站点，默认思路是：
@@ -151,4 +163,4 @@ const payload = JSON.parse(await request(input));
 - 行为验证码
 - 需要前端动态 token / 指纹校验的场景
 
-如果站点不属于上述默认链路，应在输出里明确说明“需要自定义反爬处理”，不要误报为已支持。
+如果站点属于这些场景，应改用 `more.aibox.setup.webLogin`，由用户在 Aibox 的受控 WebView 完成验证并回收指定 Cookie；不要误报 OCR 已支持。只有 WebView 登录仍不足、必须依赖 DRM、设备证明或原生私有 SDK 时，才明确说明当前源协议无法完成。

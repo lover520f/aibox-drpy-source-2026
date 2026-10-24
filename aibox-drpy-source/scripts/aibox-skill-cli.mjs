@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { inspectNativeEngineAvailability, runNativeEngineOperation } from './lib/aibox-engine-adapter.mjs';
 import { findAiboxEngineRoot } from './lib/aibox-paths.mjs';
-import { ensureSafeChildPath, loadConfig } from './lib/config.mjs';
+import { ensureSafeChildPath, loadConfig, sanitizeFilename } from './lib/config.mjs';
 import { createKnowledgeBase } from './lib/knowledge-base.mjs';
 import {
   createSession,
@@ -40,6 +40,10 @@ import {
   uploadGroup,
   uploadSingleSource,
 } from './lib/source-share-service.mjs';
+import {
+  importHikerRule,
+  saveImportedHikerRule,
+} from './lib/hiker-share-import.mjs';
 import {
   listEngineTemplateNames,
   loadEngineTemplates,
@@ -85,6 +89,7 @@ const capabilityMap = {
     heal: 'AST 安全候选补丁',
     save: '校验后原子保存',
     share: '云1/云G1 上传与回读校验',
+    'hiker-import': '从剪贴板、home_rule 或海阔云2口令读取规则',
   },
   resources: ['resources list', 'resources read', 'render-prompt'],
   legacyAliases: Object.fromEntries([...aliases.entries()].map(([name, target]) => [name, target.join(' ')])),
@@ -107,6 +112,7 @@ const helpText = `Aibox 写源助手
   heal --code-file <js>               输出安全 diff；--apply 才写入
   save --code-file <js>               校验后原子保存；--file-name 必填
   share --code-file <js>              云1 上传并回读；分组使用 --group-file
+  hiker-import --clipboard             读取海阔 home_rule/云2口令并解析规则
   resources list|read                 列出或读取知识资源
   debug-selector                      调试 pdfa/pdfh/pd
   runtime start|stop                  手动管理便携 runtime，默认随机端口
@@ -123,6 +129,8 @@ const helpText = `Aibox 写源助手
   --force                              明确越过分享门禁
   --no-verify                          跳过云端回读，仅显式使用
   --copy                               把分享码复制到 Windows 剪贴板
+  --save                               hiker-import 按规则标题保存 JSON
+  --output-file <json>                 hiker-import 指定保存路径
   --verbose                            输出完整原始结果
 
 旧命令仍可调用，但只作为 deprecated alias。
@@ -199,6 +207,8 @@ async function dispatch(command, parsed, config) {
       return commandSave(flags, config);
     case 'share':
       return commandShare(flags, config);
+    case 'hiker-import':
+      return commandHikerImport(flags, config);
     case 'resources':
       return commandResources(positionals[0] || 'list', flags);
     case 'debug-selector':
@@ -405,6 +415,53 @@ async function commandShare(flags, config) {
   if (!name) throw codedError('SHARE_NAME_REQUIRED', 'share 单源需要 --name');
   const result = await uploadSingleSource({ sourceName: name, sourceCode: code, category: flags.category || input.category || '', groupTag: flags['group-tag'] || input.groupTag || '', config: shareConfig, dryRun, verify });
   return { data: attachClipboard({ ...result, forced: force }, flags) };
+}
+
+async function commandHikerImport(flags, config) {
+  let text = '';
+  if (toBoolean(flags.clipboard)) text = readClipboardText();
+  else if (flags['text-file']) text = readText(resolveUserPath(flags['text-file']));
+  else if (flags['share-code']) text = String(flags['share-code']);
+
+  const imported = await importHikerRule({
+    text,
+    key: flags.key ? String(flags.key) : '',
+    url: flags.url ? String(flags.url) : '',
+    timeoutMs: numberOr(flags['timeout-ms'], 15000),
+    maxBytes: numberOr(flags['max-bytes'], 5 * 1024 * 1024),
+  });
+
+  let save = null;
+  if (toBoolean(flags.save) || flags['output-file']) {
+    let filePath;
+    if (flags['output-file']) {
+      filePath = resolveUserPath(flags['output-file']);
+    } else {
+      const outputDir = path.join(resolveOutputDir(flags, config), 'hiker-import');
+      const title = sanitizeFilename(imported.summary.title || imported.shareName || 'hiker-rule');
+      filePath = ensureSafeChildPath(outputDir, title.toLowerCase().endsWith('.json') ? title : `${title}.json`);
+    }
+    save = saveImportedHikerRule({
+      rule: imported.rule,
+      filePath,
+      overwrite: toBoolean(flags.overwrite),
+    });
+  }
+
+  return {
+    data: {
+      source: imported.source,
+      format: imported.format,
+      label: imported.label,
+      shareName: imported.shareName,
+      summary: imported.summary,
+      pages: imported.pages,
+      dependencies: imported.dependencies,
+      warnings: imported.warnings,
+      save,
+      execution: 'not-evaluated',
+    },
+  };
 }
 
 function commandResources(subcommand, flags) {
@@ -640,6 +697,24 @@ function attachClipboard(result, flags) {
     ? spawnSync('clip', { input: String(result.shareCode || ''), encoding: 'utf8', windowsHide: true })
     : { status: 1, error: new Error('--copy 当前仅支持 Windows') };
   return { ...result, clipboard: { copied: !copied.error && copied.status === 0, warning: copied.error?.message || String(copied.stderr || '') } };
+}
+
+function readClipboardText() {
+  if (process.platform !== 'win32') {
+    throw codedError('CLIPBOARD_UNSUPPORTED', '--clipboard 当前仅支持 Windows；可改用 --text-file');
+  }
+  const command = '[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); Get-Clipboard -Raw';
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 15000,
+  });
+  if (result.error || result.status !== 0) {
+    throw codedError('CLIPBOARD_READ_FAILED', `读取 Windows 剪贴板失败: ${result.error?.message || String(result.stderr || '').trim()}`);
+  }
+  const value = String(result.stdout || '').trim();
+  if (!value) throw codedError('CLIPBOARD_EMPTY', 'Windows 剪贴板为空');
+  return value;
 }
 
 function sourceMeta(loaded, verbose = false) {

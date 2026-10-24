@@ -5,8 +5,6 @@ import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { findAiboxEngineRoot } from './aibox-paths.mjs';
-
 const RESULT_PREFIX = '__AIBOX_NATIVE_ENGINE_RESULT__';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
@@ -24,20 +22,27 @@ const SUPPORTED_OPERATIONS = new Set([
 
 export function resolveNativeEngineLayout(skillRoot, options = {}) {
   const normalizedSkillRoot = path.resolve(skillRoot || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'));
-  const discoveredRoot = findAiboxEngineRoot({
-    explicitRoot: options.engineRoot,
-    skillRoot: normalizedSkillRoot,
-    requiredPaths: ['package.json'],
-  });
-  const engineRoot = path.resolve(
-    options.engineRoot
-      || process.env.AIBOX_ENGINE_ROOT
-      || discoveredRoot
-      || path.join(normalizedSkillRoot, 'third_party', 'aibox-engine'),
-  );
-  const projectRoot = discoveredRoot
-    ? path.resolve(engineRoot, '..', '..')
-    : path.resolve(normalizedSkillRoot, '..');
+  const cwd = path.resolve(options.cwd || process.cwd());
+  const explicitRoot = options.engineRoot || process.env.AIBOX_ENGINE_ROOT
+    || (process.env.AIBOX_ROOT ? path.join(process.env.AIBOX_ROOT, 'third_party', 'aibox-engine') : '');
+  let projectRoot = cwd;
+  let engineRoot = explicitRoot ? path.resolve(explicitRoot) : '';
+  if (!engineRoot) {
+    for (let ancestor = cwd; ; ancestor = path.dirname(ancestor)) {
+      const candidate = path.join(ancestor, 'third_party', 'aibox-engine');
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(candidate, 'package.json'), 'utf8'));
+        if (!ancestor.split(path.sep).includes('.codex') && pkg.name === 'aibox-engine'
+          && fs.statSync(path.join(candidate, 'libs', 'drpyS.js')).isFile()) {
+          projectRoot = ancestor;
+          engineRoot = candidate;
+          break;
+        }
+      } catch { /* Not a validated engine checkout. */ }
+      if (path.dirname(ancestor) === ancestor) break;
+    }
+  }
+  engineRoot ||= path.join(cwd, 'third_party', 'aibox-engine');
   const workerLibRoot = path.join(normalizedSkillRoot, 'scripts', 'lib');
   return {
     skillRoot: normalizedSkillRoot,
@@ -136,6 +141,9 @@ export async function runNativeEngineOperation(operation, options = {}) {
       permissionModel: options.permissionModel !== false,
       readablePaths: [
         availability.layout.engineRoot,
+        path.join(path.dirname(availability.layout.engineRoot), 'data'),
+        path.join(path.dirname(availability.layout.engineRoot), 'spider', 'js'),
+        path.join(path.dirname(availability.layout.engineRoot), 'jx'),
         availability.layout.workerPath,
         ...availability.layout.workerDependencyPaths,
         sourcePath,
@@ -213,7 +221,7 @@ async function invokeWorker({
     try {
       const nodeArgs = permissionModel
         ? [
-            '--experimental-permission',
+            resolveNodePermissionFlag(),
             ...readablePaths.map((targetPath) => `--allow-fs-read=${path.resolve(targetPath)}`),
             ...writablePaths.map((targetPath) => `--allow-fs-write=${path.resolve(targetPath)}`),
             workerPath,
@@ -304,6 +312,12 @@ async function invokeWorker({
 
     child.stdin.end(JSON.stringify(request));
   });
+}
+
+function resolveNodePermissionFlag() {
+  if (process.allowedNodeEnvironmentFlags?.has('--permission')) return '--permission';
+  if (process.allowedNodeEnvironmentFlags?.has('--experimental-permission')) return '--experimental-permission';
+  throw new Error('This Node.js build does not support the native worker permission model.');
 }
 
 function createWorkerWorkspace({ engineRoot, parentPath }) {

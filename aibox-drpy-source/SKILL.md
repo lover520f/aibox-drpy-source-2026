@@ -1,6 +1,6 @@
 ---
 name: aibox-drpy-source
-description: 面向 Aibox 内置 drpy-node 引擎生成、修复、分析、调试、校验、真机验收和云分享 DS 源（var rule = {}）。当用户要求按网址编写影视、小说、漫画或磁力/BT 源，修复分类、详情、搜索、播放、正文、pics://、novel://、lazy、图片代理、动态域名、验证码、签名 App API，或要求完成 L1/L2/L3 验收时使用。
+description: 编写、修复、转换和验收 AIBOX 影视、小说、漫画及 BT 的 DS 源（var rule = {}）。当任务涉及源规则、App Studio MCP 草稿与真机测试、源配置、海阔规则转换、依赖缺失或云分享时使用；Flutter 宿主与 native-js 插件开发不属于本 Skill。
 ---
 
 # Aibox DRPY 写源
@@ -38,10 +38,14 @@ description: 面向 Aibox 内置 drpy-node 引擎生成、修复、分析、调�
 | 任务 | 必读 | 按症状追加 |
 |---|---|---|
 | 新建源 | [写源工作流](references/knowledge/source-writing-workflow.md)、[核心语法](references/knowledge/drpy-basic-format-grammar.md) | [规则手册](references/knowledge/drpy-rule-playbook.md)、[选择器速查](references/knowledge/selector-cheatsheet.md) |
+| 登录或偏好配置 | [源配置协议](references/knowledge/source-setup-protocol.md) | 账号、Cookie、Token、线路、筛选默认值与网页登录 |
 | 修源 | [质量清单](references/knowledge/source-quality-checklist.md)、[核心语法](references/knowledge/drpy-basic-format-grammar.md) | 对应内容类型和故障手册 |
 | 播放/正文 | [运行时契约](references/knowledge/content-type-runtime-validation.md) | [漫画开发](references/knowledge/comic-source-development-playbook.md)、[图片代理](references/knowledge/comic-image-proxy-playbook.md)、[App API 与切片](references/knowledge/comic-app-api-scramble-retrospective.md) |
 | 特殊内容 | 对应专项手册 | [动态域](references/knowledge/dynamic-host-playbook.md)、[验证码 OCR](references/knowledge/captcha-ocr-playbook.md)、[磁力/BT](references/knowledge/magnet-bt-source-playbook.md) |
 | CLI/分享 | [命令示例](references/command-examples.md) | [能力映射](references/capability-map.md) |
+| App MCP 读写源与真机验收 | [MCP 草稿工作流](references/app-mcp-source-workflow.md) | 按内容类型继续读取对应手册 |
+| helper/npm/WASM/coreJS 缺失 | [依赖检查与候选流程](references/engine-dependencies.md) | 先 inspect，再按授权 prepare、备份、验证和应用 |
+| 海阔转换 | [海阔导入与转换](references/knowledge/hiker-to-drpy-conversion-playbook.md) | 先解析分享文本，不执行原规则 |
 
 漫画或 App API 任务必须读取漫画开发手册。涉及 WebP 切片、条带错位或真机图片乱序时，再读 App API 与切片、图片代理手册。小说和漫画完整验收必须读取运行时契约。
 
@@ -85,6 +89,8 @@ description: 面向 Aibox 内置 drpy-node 引擎生成、修复、分析、调�
 - this.input 是当前阶段请求输入，不是响应正文。先 await request(this.input, options)，再解析返回值。
 - 当前 Aibox request 同时接受 body 和 data；按目标站点 Content-Type 与实际引擎契约选择，不机械套用上游旧结论。
 - 禁止重复对象键；后一个 lazy、二级等字段会静默覆盖前一个字段。
+- 账号、密码、Token、Cookie 和长期偏好用 `more.aibox.setup` 声明；敏感值由用户在 App 内输入，不进入源码、日志或普通备份。网页登录声明 `webLogin`，以必要 Cookie 判断完成，并限制允许域名与 Cookie 范围。
+- 当前分类页筛选优先于 setup 默认值，再回退源内默认值；搜索词来自 `this.KEY`，不从偏好配置代取。
 - 函数型或 js: lazy 显式声明 play_parse: true；需要保留 lazy 的 parse、jx、url、header 时声明 play_json: []。
 - 小说返回 parse: 0 + novel://，漫画返回 parse: 0 + pics://，BT 返回原始 magnet 或公开 torrent；最终以 playParseAfter 后的接口响应为准。
 - vod_play_from 与 vod_play_url 的 $$$ 分组数必须一致，每项使用 标题$地址，并清理标题中的 # 和 $。
@@ -108,6 +114,10 @@ description: 面向 Aibox 内置 drpy-node 引擎生成、修复、分析、调�
 
 ## CLI 与交付
 
+App MCP 可用时，先按 [MCP 草稿工作流](references/app-mcp-source-workflow.md) 确认设备、权限和实际公布的工具，在隔离草稿中测试。端口监听不代表 MCP 已响应；顶层 healthy 不代表引擎运行。完整源码按服务端 nextOffset 分页读取；脱敏源码只做局部补丁，不能整份写回或用于原始 SHA 校验。仅按用户授权正式提交和分享，之后回读并区分工具成功与 L1/L2/L3 实际阶段结果。
+
+MCP 不可连接时继续独立可完成的本地检查，并明确“真机未验证”。本包不包含完整 AIBOX 引擎；需要原生依赖时使用用户提供的引擎路径或当前 App 公布的维护接口，不自动下载或发布私人引擎。
+
 常用命令：
 
 ~~~text
@@ -117,7 +127,7 @@ node <skill-root>/scripts/aibox-skill-cli.mjs lint --code-file <source.js>
 node <skill-root>/scripts/aibox-skill-cli.mjs check --code-file <source.js> --level l3
 ~~~
 
-优先使用 doctor、triage、templates、resolved、compose、lint、check、heal、save、share、resources 和 debug-selector。runtime start/stop 只用于手动诊断。heal 默认只输出 diff，只有用户要求实施修复时才使用 --apply；share 是外部写操作，只有用户明确要求分享或上传时执行。
+优先使用 doctor、triage、templates、resolved、compose、lint、check、heal、save、share、hiker-import、resources 和 debug-selector。`hiker-import` 只解析输入，`--save` 才保存；不执行导入的海阔代码。依赖缺失时先运行 `node <skill-root>/scripts/aibox-engine-tools.mjs help`。runtime start/stop 只用于手动诊断。heal 默认只输出 diff，只有用户要求实施修复时才使用 --apply；share 是外部写操作，只有用户明确要求分享或上传时执行。
 
 交付时说明站型、内容类型、实现阶梯、真实链路、L1/L2/L3 结果、动态域/验证码/代理处理和剩余风险。不要只贴代码，也不要把静态评分当成真机成功。
 

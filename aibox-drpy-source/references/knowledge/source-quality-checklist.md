@@ -73,11 +73,18 @@
 ## 漫画图片重点
 
 - 列表、分类、搜索、详情封面是否能真实解码，而不只是返回了 URL
-- 如果远端图依赖 `Referer` / `User-Agent`，是否确认规则 `headers` 足够；仍不可读时是否统一走 `proxy_rule`
-- 如果既有源或接口里出现 AES 解密逻辑，是否在 Aibox 源中实现了等价处理
+- 是否分别验证了普通卡片封面和漫画章节图片链路，而不是假定二者都会继承同一组 DS headers
+- 如果远端图依赖 `Referer` / `User-Agent`，是否确认 Flutter 普通卡片实际会带头；源侧带头成功但真机封面仍失败时，是否把 `pic_url` / `vod_pic` 改成本地 `proxy_rule`
+- 章节通过 `lazy.header` 已能稳定直连时，是否只代理封面，避免无必要增加 Node 内存、带宽和并发开销
+- 推荐、分类、搜索是否通过同一个卡片 helper 统一生成代理封面，详情 `vod_pic` 是否单独覆盖
+- `_proxyImage` 是否同时兼容全局 `getProxyUrl()` 和 `this.getProxyUrl()`，无代理基址时是否回退原图
+- `proxy_rule` 是否限制协议和图片域白名单、拒绝带凭据 URL，避免成为任意 URL 转发器
+- 如果海阔源或接口里出现 AES 解密逻辑，是否把解密移植到 Aibox 源
 - `proxy_rule` 是否对普通 JPG/PNG/WEBP 原样返回，只对非图片文件头尝试解密
 - `proxy_rule` 返回二进制图片时是否使用 `[200, mediaType, base64, headers, 1]`
+- `proxy_rule` 是否按真实文件头识别图片，并把 HTML/验证码/防盗链错误页作为 502 失败返回
 - L3 报告里的 `imageProbe.imageKind` / `firstImageProbe.imageKind` 是否是 `jpeg/png/webp/gif/avif/svg`
+- L3 报告里的封面是否按预期显示 `isProxy: true`，章节若设计为直连是否保持 `isProxy: false`
 - 原生 L3 的 `probes.covers` 是否显示推荐、分类、详情、搜索封面均通过；分类和详情是否未被 `allowEmpty` 绕过
 - `comic_chapter_first` 与 `comic_chapter_last` 是否都通过，章节首图和末图是否能真实解码
 - 是否检查过 App / Android 引擎处理后的最终播放响应仍为 `parse: 0` 且 `url` 以 `pics://` 开头，而不只是检查 `lazy` 内部原始返回值
@@ -102,6 +109,7 @@
 - 如果分类页天然无图，是否避免在源侧批量补详情封面导致接口变慢或超时
 - 是否至少对真实 `/api/{module}` 最终响应做过一次验证，而不只是局部 helper
 - 云分享或覆盖设备源后，是否核对云端回读、本地文件和设备实际文件的字节数、末尾内容与 SHA-256
+- 修复同名源时是否递增 `version`，并在手机仍显示旧行为时删除旧源后重新导入以排除 Node 模块缓存
 
 ## 磁力 / BT 补充检查
 

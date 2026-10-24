@@ -1,4 +1,4 @@
-# 漫画 App API + 切片图复盘：以禁漫天堂（18comic / JM）为例
+# 漫画 App API + 切片图复盘：以通用漫画 App API为例
 
 本文沉淀的是一次真实漫画源落地经验：**分类带筛选 → App API 加解密 → 详情章节 → `pics://` → `proxy_rule` 解切片 → Flutter 真机验收 → 云分享**。
 
@@ -99,7 +99,7 @@ route       = api（优先）/ hybrid（API 失败再回退 HTML）
 
 ## 4. App API 加解密：时间戳与密钥必须同一次请求一致
 
-以 JM 类接口为例，验证过的模式：
+以 此类接口为例，验证过的模式：
 
 ### 请求头
 
@@ -197,7 +197,7 @@ for i in 0..num-1:
 | 库 | 桌面引擎 | Flutter 真机内置 libnode | 说明 |
 |---|---|---|---|
 | `sharp` | 常可用 | **不可依赖** | 原生二进制按构建机 OS 安装；Android arm64 无对应包 |
-| `jimp` | 视版本 | 弱 | 默认 **不支持 WebP**，JM 正文几乎全是 WebP |
+| `jimp` | 视版本 | 弱 | 默认 **不支持 WebP**，漫画正文几乎全是 WebP |
 | `webp-wasm` | 可用 | **推荐** | 纯 WASM，可打进 `aibox-engine.zip` |
 | `jpeg-js` | 可用 | **推荐** | 纯 JS，重排后编码 JPEG 给阅读器 |
 
@@ -230,7 +230,7 @@ L3 图片探针有时只验证：
 
 ```js
 // 图片 URL 走代理，并带上还原参数
-getProxyUrl() + '&kind=jmimg'
+getProxyUrl() + '&kind=pageImage'
   + '&url=' + encodeURIComponent(remote)
   + '&sid=' + scrambleId
   + '&aid=' + photoId
@@ -316,13 +316,13 @@ node_modules/jpeg-js/package.json
 ### L1
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs lint --code-file '.\output\xxx[漫].js'
+node <skill-root>/scripts/aibox-skill-cli.mjs lint --code-file '.\output\xxx[漫].js'
 ```
 
 ### L2 / L3
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs check --code-file '.\output\xxx[漫].js' --level l3 --engine auto
+node <skill-root>/scripts/aibox-skill-cli.mjs check --code-file '.\output\xxx[漫].js' --level l3 --engine auto
 ```
 
 检查：
@@ -352,7 +352,7 @@ node .\scripts\aibox-skill-cli.mjs check --code-file '.\output\xxx[漫].js' --le
 ### 云分享
 
 ```powershell
-node .\scripts\aibox-skill-cli.mjs share --code-file '.\output\xxx[漫].js' --name 'xxx[漫]' --copy
+node <skill-root>/scripts/aibox-skill-cli.mjs share --code-file '.\output\xxx[漫].js' --name 'xxx[漫]' --copy
 ```
 
 分享成功以 **回读 verified + SHA-256 一致** 为准。

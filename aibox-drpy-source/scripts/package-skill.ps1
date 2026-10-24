@@ -67,7 +67,12 @@ $excludedPrefixes = @(
   'coverage',
   'assets\examples',
   'sources',
-  'spider'
+  'spider',
+  'third_party',
+  'runtime',
+  'backups',
+  'exports',
+  '.git'
 )
 
 $excludedFiles = @(
@@ -77,12 +82,24 @@ $excludedFiles = @(
 $excludedGlobs = @(
   '*.log',
   '*.tmp',
+  '.env*',
+  'env.json',
+  'key.properties',
+  '*.jks',
+  '*.keystore',
+  '*.p12',
+  '*.pfx',
   '.DS_Store',
   'Thumbs.db'
 )
 
 function Test-Excluded([System.IO.FileSystemInfo]$Item, [string]$RelativePath) {
-  $normalized = $RelativePath -replace '/', '\'
+  $normalized = ($RelativePath -replace '/', '\').ToLowerInvariant()
+  $rootPart = ($normalized -split '\\')[0]
+  if ($rootPart -eq 'config' -and $normalized -ne 'config' -and
+      $normalized -ne 'config\aibox.config.example.json') { return $true }
+  if ($rootPart -notin @('agents', 'assets', 'config', 'references', 'scripts', 'template', 'vendor') -and
+      $normalized -notin @('skill.md', 'license', 'package.json', 'package-lock.json')) { return $true }
   foreach ($prefix in $excludedPrefixes) {
     if ($normalized -eq $prefix -or $normalized.StartsWith("$prefix\")) {
       return $true
@@ -107,6 +124,9 @@ foreach ($item in $items) {
   $relative = $item.FullName.Substring($skillRootWithSlash.Length)
   if (Test-Excluded $item $relative) {
     continue
+  }
+  if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+    throw "Linked files are not distributable: $relative"
   }
   $target = Join-Path $stageSkill $relative
   if ($item.PSIsContainer) {
@@ -168,6 +188,8 @@ $manifest = [ordered]@{
   licenseFile = 'LICENSE'
   nodeModulesIncluded = $false
   builtInSourcesIncluded = $false
+  fullEngineIncluded = $false
+  localConfigurationIncluded = $false
   included = @(
     'README.md',
     'LICENSE',
@@ -192,6 +214,12 @@ $manifest = [ordered]@{
     'assets/examples/',
     'sources/',
     'spider/',
+    'third_party/',
+    'runtime/',
+    'backups/',
+    'exports/',
+    '.env*',
+    'env.json',
     'config/aibox.config.json',
     '*.log',
     '*.tmp'
@@ -241,6 +269,11 @@ try {
     $_ -like 'aibox-drpy-source/assets/examples/*' -or
     $_ -like 'aibox-drpy-source/sources/*' -or
     $_ -like 'aibox-drpy-source/spider/*' -or
+    $_ -like 'aibox-drpy-source/third_party/*' -or
+    $_ -like 'aibox-drpy-source/runtime/*' -or
+    $_ -like 'aibox-drpy-source/backups/*' -or
+    $_ -like 'aibox-drpy-source/exports/*' -or
+    $_ -match '(?i)(^|/)(env\.json|\.env[^/]*|key\.properties|[^/]+\.(jks|keystore|p12|pfx))$' -or
     $_ -eq 'aibox-drpy-source/config/aibox.config.json'
   }
   if ($forbidden.Count -gt 0) {
@@ -270,4 +303,6 @@ $fileInfo = Get-Item -LiteralPath $zipPath
   sizeBytes = $fileInfo.Length
   nodeModulesIncluded = $false
   builtInSourcesIncluded = $false
+  fullEngineIncluded = $false
+  localConfigurationIncluded = $false
 }

@@ -44,6 +44,8 @@ const forbiddenPathPatterns = [
   /(^|\/)assets\/examples(\/|$)/i,
   /(^|\/)sources(\/|$)/i,
   /(^|\/)spider(\/|$)/i,
+  /(^|\/)(?:third_party|runtime|backups|exports)(\/|$)/i,
+  /(^|\/)(?:env\.json|\.env[^/]*|key\.properties|[^/]+\.(?:jks|keystore|p12|pfx))$/i,
 ];
 
 for (const relativePath of publishSet) {
@@ -222,6 +224,10 @@ function validatePublishedHosts() {
   const approvedHosts = new Set([
     '127.0.0.1',
     'api.nn.ci',
+    'api.textdb.online',
+    'developers.openai.com',
+    'docs.npmjs.com',
+    'modelcontextprotocol.io',
     'crypto-js.googlecode.com',
     'cryptojs.gitbook.io',
     'github.com',

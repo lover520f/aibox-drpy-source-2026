@@ -11,7 +11,14 @@
 - AIBOX：[yunwuee/AIBOX-public](https://github.com/yunwuee/AIBOX-public)
 - 重点参考：[hjdhnx/drpy-node-skill](https://github.com/hjdhnx/drpy-node-skill)、[zyfun 写源文档](https://zy.catni.cn/zh-CN/)
 - 许可证：AIBOX DRPY Source Skill Source-Available License 1.0
-- 当前版本：v0.1.3
+- 当前版本：v0.1.4
+
+### v0.1.4 更新
+
+- 增加 AIBOX Studio MCP 隔离草稿、分页读取、真机验收、提交回读与冲突处理说明。
+- 补充源级登录和偏好配置协议，以及网页登录的安全边界。
+- 增加海阔分享规则的只解析导入和转换指引。
+- 增加 helper、npm、WASM 依赖检查及独立候选、备份和 MCP 工具；不附带 AIBOX 完整引擎、个人源或配置。
 
 ## 直接下载
 
@@ -294,7 +301,7 @@ Skill 可以独立运行，不要求用户同时克隆完整 AIBOX 仓库。
 1. CLI 的 `--engine-root <dir>`。
 2. 环境变量 `AIBOX_ENGINE_ROOT`。
 3. 环境变量 `AIBOX_ROOT` 下的 `third_party/aibox-engine`。
-4. 从当前目录和 Skill 目录向上查找。
+4. 从当前任务目录向祖先查找并校验实际引擎；不把已安装 Skill 的 `.codex` 目录当作引擎项目。
 
 未发现原生引擎时，静态分析、规则生成、便携检查和大部分诊断仍然可用。涉及 AIBOX 私有模板、密文解密或真机差异时，应提供目标版本的原生引擎，并以设备最终响应为准。
 
