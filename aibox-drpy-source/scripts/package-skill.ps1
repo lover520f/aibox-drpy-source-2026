@@ -118,27 +118,29 @@ function Test-Excluded([System.IO.FileSystemInfo]$Item, [string]$RelativePath) {
   return $false
 }
 
-$skillRootWithSlash = $SkillRoot.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
-$items = Get-ChildItem -LiteralPath $SkillRoot -Recurse -Force
-foreach ($item in $items) {
-  $relative = $item.FullName.Substring($skillRootWithSlash.Length)
-  if (Test-Excluded $item $relative) {
-    continue
-  }
-  if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-    throw "Linked files are not distributable: $relative"
-  }
-  $target = Join-Path $stageSkill $relative
-  if ($item.PSIsContainer) {
-    New-Item -ItemType Directory -Path $target -Force | Out-Null
-  } else {
-    $targetDir = Split-Path $target -Parent
-    if (-not (Test-Path -LiteralPath $targetDir -PathType Container)) {
-      New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+function Copy-SkillTree([string]$Directory, [string]$RelativePrefix) {
+  # Resolve-Path can retain 8.3 aliases while FileInfo.FullName expands them.
+  # Carry entry names instead of slicing absolute paths with unequal lengths.
+  foreach ($item in (Get-ChildItem -LiteralPath $Directory -Force)) {
+    $relative = if ($RelativePrefix) { Join-Path $RelativePrefix $item.Name } else { $item.Name }
+    if (Test-Excluded $item $relative) { continue }
+    if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+      throw "Linked files are not distributable: $relative"
     }
-    Copy-Item -LiteralPath $item.FullName -Destination $target -Force
+    $target = Join-Path $stageSkill $relative
+    if ($item.PSIsContainer) {
+      New-Item -ItemType Directory -Path $target -Force | Out-Null
+      Copy-SkillTree $item.FullName $relative
+    } else {
+      $targetDir = Split-Path $target -Parent
+      if (-not (Test-Path -LiteralPath $targetDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+      }
+      Copy-Item -LiteralPath $item.FullName -Destination $target -Force
+    }
   }
 }
+Copy-SkillTree $SkillRoot ''
 
 foreach ($rootFile in @('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
   $source = Join-Path $repoRoot $rootFile
@@ -292,7 +294,6 @@ if ($stageResolved.StartsWith($tempResolved, [System.StringComparison]::OrdinalI
 
 if ($validationError) {
   $validationError += "; archive entries: $($entries | Select-Object -First 12 | Join-String -Separator ', ')"
-  $validationError += "; source root: $SkillRoot; first relative path: $($items[0].FullName.Substring($skillRootWithSlash.Length))"
   if (Test-Path -LiteralPath $zipPath -PathType Leaf) {
     Remove-Item -LiteralPath $zipPath -Force
   }
